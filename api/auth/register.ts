@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@vercel/postgres';
+import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(
@@ -16,8 +16,11 @@ export default async function handler(
     POSTGRES_URL_EXISTS: !!process.env.POSTGRES_URL,
   };
 
-  const client = createClient({
+  const client = new Client({
     connectionString: process.env.POSTGRES_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
 
   try {
@@ -34,11 +37,12 @@ export default async function handler(
     await client.connect();
 
     // Check if user already exists
-    const existingUser = await client.sql`
-      SELECT * FROM users WHERE email = ${email}
-    `;
+    const existingUser = await client.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    );
 
-    if (existingUser.rowCount > 0) {
+    if (existingUser.rowCount && existingUser.rowCount > 0) {
       return response.status(409).json({ error: 'User already exists' });
     }
 
@@ -46,11 +50,10 @@ export default async function handler(
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user
-    const result = await client.sql`
-      INSERT INTO users (name, email, password)
-      VALUES (${name}, ${email}, ${hashedPassword})
-      RETURNING id, name, email, created_at
-    `;
+    const result = await client.query(
+      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, created_at',
+      [name, email, hashedPassword]
+    );
 
     const user = result.rows[0];
 

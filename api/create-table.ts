@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@vercel/postgres';
+import { Client } from 'pg';
 
 export default async function handler(
   request: VercelRequest,
@@ -18,8 +18,11 @@ export default async function handler(
 
   console.log('API Debug Info:', JSON.stringify(envDebug, null, 2));
 
-  const client = createClient({
+  const client = new Client({
     connectionString: process.env.POSTGRES_URL,
+    ssl: {
+      rejectUnauthorized: false // Required for many hosted Postgres services including Vercel/Prisma
+    }
   });
 
   try {
@@ -34,7 +37,7 @@ export default async function handler(
     await client.connect();
 
     // Using snake_case for column names is standard in Postgres and avoids quoting issues
-    const result = await client.sql`
+    const result = await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -42,7 +45,8 @@ export default async function handler(
         password VARCHAR(255) NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-    `;
+    `);
+    
     return response.status(200).json({ 
       message: "Table created successfully (or already exists)",
       result, 

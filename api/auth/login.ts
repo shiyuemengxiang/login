@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@vercel/postgres';
+import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(
@@ -16,8 +16,11 @@ export default async function handler(
     POSTGRES_URL_EXISTS: !!process.env.POSTGRES_URL,
   };
 
-  const client = createClient({
+  const client = new Client({
     connectionString: process.env.POSTGRES_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
 
   try {
@@ -34,9 +37,10 @@ export default async function handler(
     await client.connect();
 
     // Find user
-    const result = await client.sql`
-      SELECT * FROM users WHERE email = ${email}
-    `;
+    const result = await client.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    );
 
     if (result.rowCount === 0) {
       return response.status(401).json({ error: 'Invalid credentials' });
