@@ -2,39 +2,61 @@ import { User, AuthResponse } from '../types';
 
 export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await response.json();
+      const text = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // If response is not JSON (e.g., Vercel 500 error page), throw a readable error
+        throw new Error(`Server error (${response.status}): The server encountered an issue.`);
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      return data as AuthResponse;
+    } catch (error: any) {
+      throw new Error(error.message || 'Network error');
     }
-
-    return data as AuthResponse;
   },
 
   register: async (name: string, email: string, password: string): Promise<AuthResponse> => {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    const data = await response.json();
+      const text = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Server error (${response.status}): The server encountered an issue.`);
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      return data as AuthResponse;
+    } catch (error: any) {
+      throw new Error(error.message || 'Network error');
     }
-
-    return data as AuthResponse;
   },
 
   logout: async (): Promise<void> => {
-    // In a real app with HTTP-only cookies, you would call an endpoint like /api/auth/logout
     return Promise.resolve();
   }
 };

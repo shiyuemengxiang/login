@@ -6,13 +6,13 @@ export default async function handler(request: any, response: any) {
     return response.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, password } = request.body;
-
-  if (!email || !password) {
-    return response.status(400).json({ error: 'Missing email or password' });
-  }
-
   try {
+    const { email, password } = request.body;
+
+    if (!email || !password) {
+      return response.status(400).json({ error: 'Missing email or password' });
+    }
+
     // Find user
     const result = await sql`
       SELECT * FROM users WHERE email = ${email}
@@ -36,13 +36,13 @@ export default async function handler(request: any, response: any) {
         id: user.id.toString(),
         name: user.name,
         email: user.email,
-        createdAt: user.createdAt
+        createdAt: user.created_at // Map snake_case DB to camelCase API
       },
-      token: 'demo-token-' + Date.now() // In a real app, use jsonwebtoken here
+      token: 'demo-token-' + Date.now()
     });
 
   } catch (error: any) {
-    console.error(error);
-    return response.status(500).json({ error: 'Internal server error' });
+    console.error('Login error:', error);
+    return response.status(500).json({ error: error.message || 'Internal server error' });
   }
 }

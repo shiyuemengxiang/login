@@ -6,13 +6,13 @@ export default async function handler(request: any, response: any) {
     return response.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { name, email, password } = request.body;
-
-  if (!name || !email || !password) {
-    return response.status(400).json({ error: 'Missing required fields' });
-  }
-
   try {
+    const { name, email, password } = request.body;
+
+    if (!name || !email || !password) {
+      return response.status(400).json({ error: 'Missing required fields' });
+    }
+
     // Check if user already exists
     const existingUser = await sql`
       SELECT * FROM users WHERE email = ${email}
@@ -29,7 +29,7 @@ export default async function handler(request: any, response: any) {
     const result = await sql`
       INSERT INTO users (name, email, password)
       VALUES (${name}, ${email}, ${hashedPassword})
-      RETURNING id, name, email, "createdAt"
+      RETURNING id, name, email, created_at
     `;
 
     const user = result.rows[0];
@@ -39,13 +39,13 @@ export default async function handler(request: any, response: any) {
         id: user.id.toString(),
         name: user.name,
         email: user.email,
-        createdAt: user.createdAt
+        createdAt: user.created_at // Map snake_case DB to camelCase API
       },
-      token: 'demo-token-' + Date.now() // In a real app, use jsonwebtoken here
+      token: 'demo-token-' + Date.now()
     });
 
   } catch (error: any) {
-    console.error(error);
-    return response.status(500).json({ error: error.message });
+    console.error('Registration error:', error);
+    return response.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
