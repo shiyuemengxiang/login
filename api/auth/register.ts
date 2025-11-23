@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { sql } from '@vercel/postgres';
+import { createClient } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(
@@ -16,6 +16,8 @@ export default async function handler(
     POSTGRES_URL_EXISTS: !!process.env.POSTGRES_URL,
   };
 
+  const client = createClient();
+
   try {
     if (!process.env.POSTGRES_URL) {
       throw new Error('POSTGRES_URL environment variable is not defined.');
@@ -27,8 +29,10 @@ export default async function handler(
       return response.status(400).json({ error: 'Missing required fields' });
     }
 
+    await client.connect();
+
     // Check if user already exists
-    const existingUser = await sql`
+    const existingUser = await client.sql`
       SELECT * FROM users WHERE email = ${email}
     `;
 
@@ -40,7 +44,7 @@ export default async function handler(
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user
-    const result = await sql`
+    const result = await client.sql`
       INSERT INTO users (name, email, password)
       VALUES (${name}, ${email}, ${hashedPassword})
       RETURNING id, name, email, created_at
@@ -64,5 +68,7 @@ export default async function handler(
       error: error.message || 'Internal server error',
       debug: envDebug
     });
+  } finally {
+    await client.end();
   }
 }

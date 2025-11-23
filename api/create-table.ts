@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { sql } from '@vercel/postgres';
+import { createClient } from '@vercel/postgres';
 
 export default async function handler(
   request: VercelRequest,
@@ -18,6 +18,8 @@ export default async function handler(
 
   console.log('API Debug Info:', JSON.stringify(envDebug, null, 2));
 
+  const client = createClient();
+
   try {
     if (!process.env.POSTGRES_URL) {
       return response.status(500).json({
@@ -27,8 +29,10 @@ export default async function handler(
       });
     }
 
+    await client.connect();
+
     // Using snake_case for column names is standard in Postgres and avoids quoting issues
-    const result = await sql`
+    const result = await client.sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -49,5 +53,7 @@ export default async function handler(
       stack: error.stack,
       debug: envDebug
     });
+  } finally {
+    await client.end();
   }
 }
