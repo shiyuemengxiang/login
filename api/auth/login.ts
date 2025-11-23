@@ -14,6 +14,10 @@ export default async function handler(
   }
 
   try {
+    if (!process.env.POSTGRES_URL) {
+      throw new Error('POSTGRES_URL environment variable is not defined.');
+    }
+
     const { email, password } = request.body;
 
     if (!email || !password) {

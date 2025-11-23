@@ -6,6 +6,10 @@ export default async function handler(
   response: VercelResponse
 ) {
   try {
+    if (!process.env.POSTGRES_URL) {
+      throw new Error('POSTGRES_URL environment variable is not defined. Please connect your Vercel Postgres database.');
+    }
+
     // Using snake_case for column names is standard in Postgres and avoids quoting issues
     const result = await sql`
       CREATE TABLE IF NOT EXISTS users (
