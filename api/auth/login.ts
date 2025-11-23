@@ -16,7 +16,9 @@ export default async function handler(
     POSTGRES_URL_EXISTS: !!process.env.POSTGRES_URL,
   };
 
-  const client = createClient();
+  const client = createClient({
+    connectionString: process.env.POSTGRES_URL,
+  });
 
   try {
     if (!process.env.POSTGRES_URL) {
