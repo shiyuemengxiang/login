@@ -1,17 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
-import { hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
-  // Force JSON content type
   response.setHeader('Content-Type', 'application/json');
 
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method not allowed' });
   }
+
+  const envDebug = {
+    POSTGRES_URL_EXISTS: !!process.env.POSTGRES_URL,
+  };
 
   try {
     if (!process.env.POSTGRES_URL) {
@@ -34,7 +37,7 @@ export default async function handler(
     }
 
     // Hash password
-    const hashedPassword = await hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user
     const result = await sql`
@@ -57,10 +60,9 @@ export default async function handler(
 
   } catch (error: any) {
     console.error('Registration error:', error);
-    // Return JSON even on crash
     return response.status(500).json({ 
       error: error.message || 'Internal server error',
-      details: 'Check Vercel project logs for full error trace.'
+      debug: envDebug
     });
   }
 }

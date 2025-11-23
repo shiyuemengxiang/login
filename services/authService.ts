@@ -15,11 +15,14 @@ export const authService = {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        // If response is not JSON (e.g., Vercel 500 error page), throw a readable error
-        throw new Error(`Server error (${response.status}): The server encountered an issue.`);
+        console.error("Failed to parse server response:", text);
+        throw new Error(`Server error (${response.status}). Check console for details.`);
       }
 
       if (!response.ok) {
+        if (data.debug) {
+            console.log("Server Debug Info:", data.debug);
+        }
         throw new Error(data.error || 'Login failed');
       }
 
@@ -43,10 +46,14 @@ export const authService = {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        throw new Error(`Server error (${response.status}): The server encountered an issue.`);
+        console.error("Failed to parse server response:", text);
+        throw new Error(`Server error (${response.status}). Check console for details.`);
       }
 
       if (!response.ok) {
+        if (data.debug) {
+            console.log("Server Debug Info:", data.debug);
+        }
         throw new Error(data.error || 'Registration failed');
       }
 
