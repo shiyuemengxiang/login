@@ -1,0 +1,5 @@
+{
+  "name": "Vercel Postgres Auth UI",
+  "description": "A modern, responsive authentication interface (Login/Register) designed for integration with Vercel Postgres.",
+  "requestFramePermissions": []
+}
