@@ -37,10 +37,34 @@ export default async function handler(
     await client.connect();
 
     // Find user
-    const result = await client.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    );
+    let result;
+    try {
+      result = await client.query(
+        'SELECT * FROM users WHERE email = $1',
+        [email]
+      );
+    } catch (error: any) {
+      // Error code 42P01 means "undefined_table"
+      if (error.code === '42P01') {
+        console.log('Table "users" does not exist. Creating it now...');
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        // Retry the query
+        result = await client.query(
+          'SELECT * FROM users WHERE email = $1',
+          [email]
+        );
+      } else {
+        throw error;
+      }
+    }
 
     if (result.rowCount === 0) {
       return response.status(401).json({ error: 'Invalid credentials' });
