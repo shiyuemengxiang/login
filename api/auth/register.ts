@@ -1,7 +1,14 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sql } from '@vercel/postgres';
 import { hash } from 'bcryptjs';
 
-export default async function handler(request: any, response: any) {
+export default async function handler(
+  request: VercelRequest,
+  response: VercelResponse
+) {
+  // Force JSON content type
+  response.setHeader('Content-Type', 'application/json');
+
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method not allowed' });
   }
@@ -39,13 +46,17 @@ export default async function handler(request: any, response: any) {
         id: user.id.toString(),
         name: user.name,
         email: user.email,
-        createdAt: user.created_at // Map snake_case DB to camelCase API
+        createdAt: user.created_at
       },
       token: 'demo-token-' + Date.now()
     });
 
   } catch (error: any) {
     console.error('Registration error:', error);
-    return response.status(500).json({ error: error.message || 'Internal server error' });
+    // Return JSON even on crash
+    return response.status(500).json({ 
+      error: error.message || 'Internal server error',
+      details: 'Check Vercel project logs for full error trace.'
+    });
   }
 }
